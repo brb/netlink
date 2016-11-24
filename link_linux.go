@@ -1074,6 +1074,14 @@ func LinkDeserialize(m []byte) (Link, error) {
 				return nil, err
 			}
 			base.Xdp = xdp
+		case syscall.IFLA_PROTINFO | syscall.NLA_F_NESTED:
+			attrs, _ := nl.ParseRouteAttr(attr.Value[:])
+			for _, attr := range attrs {
+				if attr.Attr.Type == nl.IFLA_BRPORT_MODE {
+					fmt.Println("hairpin", attr.Value)
+				}
+
+			}
 		}
 	}
 	// Links that don't have IFLA_INFO_KIND are hardware devices
