@@ -5,14 +5,26 @@ import (
 )
 
 const (
-	SizeofXfrmUsersaId    = 0x18
-	SizeofXfrmStats       = 0x0c
-	SizeofXfrmUsersaInfo  = 0xe0
-	SizeofXfrmAlgo        = 0x44
-	SizeofXfrmAlgoAuth    = 0x48
-	SizeofXfrmAlgoAEAD    = 0x48
-	SizeofXfrmEncapTmpl   = 0x18
-	SizeofXfrmUsersaFlush = 0x8
+	SizeofXfrmUsersaId       = 0x18
+	SizeofXfrmStats          = 0x0c
+	SizeofXfrmUsersaInfo     = 0xe0
+	SizeofXfrmAlgo           = 0x44
+	SizeofXfrmAlgoAuth       = 0x48
+	SizeofXfrmAlgoAEAD       = 0x48
+	SizeofXfrmEncapTmpl      = 0x18
+	SizeofXfrmUsersaFlush    = 0x8
+	SizeofXfrmReplayStateEsn = 0x18
+)
+
+const (
+	XFRM_STATE_NOECN      = 1
+	XFRM_STATE_DECAP_DSCP = 2
+	XFRM_STATE_NOPMTUDISC = 4
+	XFRM_STATE_WILDRECV   = 8
+	XFRM_STATE_ICMP       = 16
+	XFRM_STATE_AF_UNSPEC  = 32
+	XFRM_STATE_ALIGN4     = 64
+	XFRM_STATE_ESN        = 128
 )
 
 // struct xfrm_usersa_id {
@@ -269,4 +281,38 @@ func DeserializeXfrmUsersaFlush(b []byte) *XfrmUsersaFlush {
 
 func (msg *XfrmUsersaFlush) Serialize() []byte {
 	return (*(*[SizeofXfrmUsersaFlush]byte)(unsafe.Pointer(msg)))[:]
+}
+
+// struct xfrm_replay_state_esn {
+// 	unsigned int	bmp_len;
+// 	__u32		oseq;
+// 	__u32		seq;
+// 	__u32		oseq_hi;
+// 	__u32		seq_hi;
+// 	__u32		replay_window;
+// 	__u32		bmp[0];
+// };
+
+type XfrmReplayStateEsn struct {
+	BmpLen       uint32
+	OSeq         uint32
+	Seq          uint32
+	OSeqHi       uint32
+	SeqHi        uint32
+	ReplayWindow uint32
+	Bmp          []uint32
+}
+
+func (msg *XfrmReplayStateEsn) Len() int {
+	// TODO(mp)
+	return SizeofXfrmReplayStateEsn
+}
+
+func DeserializeXfrmReplayStateEsn(b []byte) *XfrmReplayStateEsn {
+	ret := (*XfrmReplayStateEsn)(unsafe.Pointer(&b[0:SizeofXfrmReplayStateEsn][0]))
+	return ret
+}
+
+func (msg *XfrmReplayStateEsn) Serialize() []byte {
+	return (*(*[SizeofXfrmReplayStateEsn]byte)(unsafe.Pointer(msg)))[:]
 }

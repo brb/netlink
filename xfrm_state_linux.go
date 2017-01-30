@@ -100,7 +100,17 @@ func (h *Handle) xfrmStateAddOrUpdate(state *XfrmState, nlProto int) error {
 	msg.Id.Spi = nl.Swap32(uint32(state.Spi))
 	msg.Reqid = uint32(state.Reqid)
 	msg.ReplayWindow = uint8(state.ReplayWindow)
+
 	limitsToLft(state.Limits, &msg.Lft)
+
+	if state.ESN {
+		msg.Flags |= nl.XFRM_STATE_ESN
+
+		if state.ReplayWindow == 0 {
+			return fmt.Errorf("ESN flag set without ReplayWindow")
+		}
+	}
+
 	req.AddData(msg)
 
 	if state.Auth != nil {
@@ -130,8 +140,28 @@ func (h *Handle) xfrmStateAddOrUpdate(state *XfrmState, nlProto int) error {
 		req.AddData(out)
 	}
 
+	if state.ESN {
+		out := nl.NewRtAttr(nl.XFRMA_REPLAY_ESN_VAL, writeReplayEsn(state.ReplayWindow))
+		req.AddData(out)
+	}
+
 	_, err := req.Execute(syscall.NETLINK_XFRM, 0)
 	return err
+}
+
+func writeReplayEsn(replayWindow int) []byte {
+	replayEsn := &nl.XfrmReplayStateEsn{
+		OSeq:         0,
+		Seq:          0,
+		OSeqHi:       0,
+		SeqHi:        0,
+		ReplayWindow: uint32(replayWindow),
+	}
+
+	// taken from iproute2/ip/xfrm_state.c:
+	replayEsn.BmpLen = uint32((replayWindow + (4 * 8) - 1) / (4 * 8))
+
+	return replayEsn.Serialize()
 }
 
 // XfrmStateDel will delete an xfrm state from the system. Note that
