@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -432,6 +433,19 @@ done:
 				return nil, fmt.Errorf("Wrong Seq nr %d, expected %d", m.Header.Seq, req.Seq)
 			}
 			if m.Header.Pid != pid {
+				filename := "/tmp/netlink_err.log"
+				f, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+				if err != nil {
+					return nil, fmt.Errorf("Unable to open %s: %s", filename, err)
+				}
+				defer f.Close()
+				log := fmt.Sprintf("------------------------------\n")
+				log += fmt.Sprintf("seq: %d e.seq: %d pid: %d e.pid: %d\n", m.Header.Seq, req.Seq, m.Header.Pid, pid)
+				log += fmt.Sprintf("%+v\n", m)
+				log += fmt.Sprintf("------------------------------\n")
+				if _, err = f.WriteString(log); err != nil {
+					return nil, fmt.Errorf("Unable to append to %s: %s", filename, err)
+				}
 				return nil, fmt.Errorf("Wrong pid %d, expected %d", m.Header.Pid, pid)
 			}
 			if m.Header.Type == unix.NLMSG_DONE {
